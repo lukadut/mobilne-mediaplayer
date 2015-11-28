@@ -13,7 +13,6 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 
-import java.io.Console;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -21,7 +20,7 @@ public class MainActivity extends AppCompatActivity
 {
     private ImageView rewindLeft, playPause, rewindRight;
     private ListView listView;
-    ArrayList<Song> songList;
+    ArrayList<Song> songs;
     private MediaPlayer mp = new MediaPlayer();
 
     // Stany przycisku buttonPlayPause
@@ -100,35 +99,33 @@ public class MainActivity extends AppCompatActivity
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                onListItemClick( parent,  view,  position,  id);
-                Log.d("position", position + "");
-                Log.d("id", id+"");
-                Log.d("click", songList.get(position).attributes.size()+"");
-                Log.d("click", songList.get(position).attributes.get("_data")+"");
+                aonItemClick(parent, view, position, id);
             }
         });
         getSongList();
-        for (Song song:songList){
-            adapter.add(song.id + ". " + song.getArtist() + " - " + song.getTitle());
+        int songIndex=1;
+        for (Song song: songs){
+            adapter.add(songIndex + ". " + song.getArtist() + " - " + song.getTitle());
+            songIndex++;
         }
     }
 
 
-    protected void onListItemClick(AdapterView<?> list, View view, int position, long id){
+    protected void aonItemClick(AdapterView<?> list, View view, int position, long id){
         Log.d("position", position+"");
         Log.d("id", id+"");
-       /*
+
         try {
 
             mp.reset();
-            mp.setDataSource(SD_PATH + songs.get(position));
+            mp.setDataSource(songs.get(position).getPath());
             mp.prepare();
             mp.start();
 
-        } catch(IOException e){
+        } catch(Exception e){
             Log.v(getString(R.string.app_name), e.getMessage());
         }
-        */
+        Log.d("po E", songs.get(position).getPath());
     }
 
 
@@ -137,11 +134,12 @@ public class MainActivity extends AppCompatActivity
         ContentResolver musicResolver = getContentResolver();
         Uri musicUri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         Cursor musicCursor = musicResolver.query(musicUri, null, null, null, null);
-        songList = new ArrayList<>();
+        songs = new ArrayList<>();
 
         if (musicCursor != null && musicCursor.moveToFirst()) {
             //get columns
             String[] columns = musicCursor.getColumnNames();
+            /*
             for(String s:columns){
                 Log.d("kolumna",s);
                 try {
@@ -152,24 +150,16 @@ public class MainActivity extends AppCompatActivity
                 catch (Exception e){
 
                 }
-            }
-            int titleColumn = musicCursor.getColumnIndex
-                    (android.provider.MediaStore.Audio.Media.TITLE);
+            }*/
             int idColumn = musicCursor.getColumnIndex
                     (android.provider.MediaStore.Audio.Media._ID);
-            int artistColumn = musicCursor.getColumnIndex
-                    (android.provider.MediaStore.Audio.Media.ARTIST);
+
             //add songs to list
-            int i=1;
 
             do {
                 long thisId = musicCursor.getLong(idColumn);
-                String thisTitle = musicCursor.getString(titleColumn);
-                String thisArtist = musicCursor.getString(artistColumn);
-                Log.d("value", musicCursor.getString(1));
 
-                songList.add(new Song(i, thisId, thisTitle, thisArtist,columns, musicCursor));
-                i++;
+                songs.add(new Song( thisId, columns, musicCursor));
             }
             while (musicCursor.moveToNext());
         }

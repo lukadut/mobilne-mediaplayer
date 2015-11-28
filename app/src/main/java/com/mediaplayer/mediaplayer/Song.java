@@ -13,24 +13,23 @@ import java.util.Objects;
 public class Song {
 
         private long songID;
-        public long id;
-        private String title;
-        private String artist;
-        public Dictionary attributes;
-        public Song(long id,long songID, String songTitle, String songArtist,String[] columns, Cursor cursor) {
-            attributes = new Hashtable<String,Object>();
+
+        private Dictionary<String,String> attributes;
+        public Song(long songID,String[] columns, Cursor cursor) {
+            attributes = new Hashtable<String,String>();
             int columnsLength = columns.length;
             for(int i=0;i<columnsLength;i++){
                 Object attribute = cursor.getString(i);
                 attributes.put(columns[i],(attribute==null? "<uknown>": (String)attribute));
             }
             this.songID = songID;
-            this.id=id;
-            title=songTitle;
-            artist=songArtist;
         }
-        public long getID(){return id;}
-        public String getTitle(){return title;}
-        public String getArtist(){return artist;}
+        public long getSongId(){return songID;}
+        public String get(String attribute){
+            return attributes.get(attribute);
+        }
+        public String getPath(){return get("_data");}
+        public String getTitle(){return get("title");}
+        public String getArtist(){return get("artist");}
 
 }
