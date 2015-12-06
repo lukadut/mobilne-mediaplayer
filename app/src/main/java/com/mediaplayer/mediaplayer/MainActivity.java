@@ -1,6 +1,7 @@
 package com.mediaplayer.mediaplayer;
 
 import android.content.ContentResolver;
+import android.content.Intent;
 import android.database.Cursor;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -20,22 +21,12 @@ public class MainActivity extends AppCompatActivity
 {
     private ImageView rewindLeft, playPause, rewindRight;
     private ListView listView;
+
+    private MyService myService;
+    private Intent intent;
+
     ArrayList<Song> songs;
     private MediaPlayer mp = new MediaPlayer();
-
-    // Stany przycisku buttonPlayPause
-    public enum PlayPauseStates
-    {
-        PLAY, PAUSE
-    }
-
-    // Ustawiony stan przycisku buttonPlayPause
-    private PlayPauseStates playPauseState;
-
-    public void setPlayPauseState(PlayPauseStates state)
-    {
-        playPauseState = state;
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -43,25 +34,28 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        setPlayPauseState(PlayPauseStates.PLAY);
-
         playPause = (ImageView) findViewById(R.id.buttonPlayPause);
         playPause.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(View v)
             {
-                if (playPauseState == PlayPauseStates.PLAY)
+                if (myService.getPlayerState() == MyService.State.PLAY)
                 {
-                    playPause.setImageResource(R.drawable.pause);
-                    setPlayPauseState(PlayPauseStates.PAUSE);
-                    // TODO: działanie przycisku
+                    if (myService != null)
+                    {
+                        playPause.setImageResource(R.drawable.pause);
+                        myService.playerPause();
+                    }
+                    else
+                    {
+                        System.out.println("Brak referencji.");
+                    }
                 }
                 else
                 {
                     playPause.setImageResource(R.drawable.play);
-                    setPlayPauseState(PlayPauseStates.PLAY);
-                    // TODO: działanie przycisku
+                    myService.playerPlay();
                 }
             }
         });
@@ -112,8 +106,9 @@ public class MainActivity extends AppCompatActivity
 
 
     protected void aonItemClick(AdapterView<?> list, View view, int position, long id){
-        Log.d("position", position+"");
-        Log.d("id", id+"");
+        Log.d("position", position + "");
+        Log.d("id", id + "");
+        //serwis.play(songs.get(position).getPath());
 
         try {
 
