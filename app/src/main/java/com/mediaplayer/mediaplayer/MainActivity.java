@@ -1,10 +1,13 @@
 package com.mediaplayer.mediaplayer;
 
+import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -17,7 +20,7 @@ import android.widget.ListView;
 import java.io.IOException;
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity
+public class MainActivity extends AppCompatActivity implements ServiceConnection
 {
     private ImageView rewindLeft, playPause, rewindRight;
     private ListView listView;
@@ -55,6 +58,9 @@ public class MainActivity extends AppCompatActivity
                 else
                 {
                     playPause.setImageResource(R.drawable.play);
+                    intent = new Intent(getApplicationContext(), MyService.class);
+                    //myService.set_path();
+                    startService(intent);
                     myService.playerPlay();
                 }
             }
@@ -80,58 +86,65 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-        ArrayList<String> listItems=new ArrayList<String>();
-
+        ArrayList<String> listItems = new ArrayList<String>();
 
 
         ArrayAdapter<String> adapter;
-        adapter=new ArrayAdapter<String>(this,
+        adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_list_item_1,
                 listItems);
-        listView=(ListView)findViewById(R.id.listView);
+        listView = (ListView) findViewById(R.id.listView);
         listView.setAdapter(adapter);
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener()
+        {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id)
+            {
                 aonItemClick(parent, view, position, id);
             }
         });
         getSongList();
-        int songIndex=1;
-        for (Song song: songs){
+        int songIndex = 1;
+        for (Song song : songs)
+        {
             adapter.add(songIndex + ". " + song.getArtist() + " - " + song.getTitle());
             songIndex++;
         }
     }
 
 
-    protected void aonItemClick(AdapterView<?> list, View view, int position, long id){
+    protected void aonItemClick(AdapterView<?> list, View view, int position, long id)
+    {
         Log.d("position", position + "");
         Log.d("id", id + "");
         //serwis.play(songs.get(position).getPath());
 
-        try {
+        try
+        {
 
             mp.reset();
             mp.setDataSource(songs.get(position).getPath());
             mp.prepare();
             mp.start();
 
-        } catch(Exception e){
+        }
+        catch (Exception e)
+        {
             Log.v(getString(R.string.app_name), e.getMessage());
         }
         Log.d("po E", songs.get(position).getPath());
     }
 
 
-
-    public void getSongList() {
+    public void getSongList()
+    {
         ContentResolver musicResolver = getContentResolver();
         Uri musicUri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         Cursor musicCursor = musicResolver.query(musicUri, null, null, null, null);
         songs = new ArrayList<>();
 
-        if (musicCursor != null && musicCursor.moveToFirst()) {
+        if (musicCursor != null && musicCursor.moveToFirst())
+        {
             //get columns
             String[] columns = musicCursor.getColumnNames();
             /*
@@ -151,14 +164,46 @@ public class MainActivity extends AppCompatActivity
 
             //add songs to list
 
-            do {
+            do
+            {
                 long thisId = musicCursor.getLong(idColumn);
 
-                songs.add(new Song( thisId, columns, musicCursor));
+                songs.add(new Song(thisId, columns, musicCursor));
             }
             while (musicCursor.moveToNext());
         }
         // sciezka do pliku do _data, index 1
     }
 
+    @Override
+    protected void onResume()
+    {
+        super.onResume();
+        System.out.println("Wykonano resume");
+        Intent bindIntent = new Intent(this, MyService.class);
+        bindService(bindIntent, this, BIND_AUTO_CREATE);
+    }
+
+    @Override
+    protected void onPause()
+    {
+        super.onPause();
+        System.out.println("Wykonano onPause");
+        if (myService != null)
+        {
+            unbindService(this);
+        }
+    }
+
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder iBinder)
+    {
+        myService = ((MyService.LocalBinder) iBinder).getService();
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName name)
+    {
+        myService = null;
+    }
 }
