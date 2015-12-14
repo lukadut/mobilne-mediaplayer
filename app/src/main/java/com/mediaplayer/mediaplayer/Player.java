@@ -16,6 +16,8 @@ import android.widget.ListView;
 /**
  * Created by Łukasz on 2015-11-28.
  */
-public class Player {
+public interface Player {
+    public void nextSong();
+    public void previousSong();
 
 }

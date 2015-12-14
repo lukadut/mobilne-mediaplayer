@@ -20,7 +20,7 @@ public class Song {
             int columnsLength = columns.length;
             for(int i=0;i<columnsLength;i++){
                 Object attribute = cursor.getString(i);
-                attributes.put(columns[i],(attribute==null? "<uknown>": (String)attribute));
+                attributes.put(columns[i],(attribute==null? "<unknown>": (String)attribute));
             }
             this.songID = songID;
         }

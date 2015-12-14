@@ -16,20 +16,24 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.Toast;
 
-import java.io.IOException;
+import com.mediaplayer.mediaplayer.Exceptions.NegativeIndexException;
+import com.mediaplayer.mediaplayer.Exceptions.OverflowIndexException;
+
+import java.lang.*;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements ServiceConnection
 {
-    private ImageView rewindLeft, playPause, rewindRight;
+    private ImageView nextSong, playPause, previousSong;
     private ListView listView;
 
-    private MyService myService;
+    private MediaPlayerService mediaPlayerService;
     private Intent intent;
 
-    ArrayList<Song> songs;
-    private MediaPlayer mp = new MediaPlayer();
+    static ArrayList<Song> songs;
+    //private MediaPlayer mp = new MediaPlayer();
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -37,70 +41,82 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        intent=new Intent(getApplicationContext(),MediaPlayerService.class);
+        startService(intent);
+
+        //buttony
         playPause = (ImageView) findViewById(R.id.buttonPlayPause);
-        playPause.setOnClickListener(new View.OnClickListener()
-        {
+        playPause.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v)
-            {
-                if (myService.getPlayerState() == MyService.State.PLAY)
-                {
-                    if (myService != null)
-                    {
-                        playPause.setImageResource(R.drawable.pause);
-                        myService.playerPause();
-                    }
-                    else
-                    {
-                        System.out.println("Brak referencji.");
-                    }
+            public void onClick(View v) {
+                if(mediaPlayerService.isPlaying()) {
+                    mediaPlayerService.pause();
+                    Log.d("serwis", "is playing serwis");
                 }
-                else
-                {
-                    playPause.setImageResource(R.drawable.play);
-                    intent = new Intent(getApplicationContext(), MyService.class);
-                    //myService.set_path();
-                    startService(intent);
-                    myService.playerPlay();
+                else {
+                    if(mediaPlayerService.getSongIndex()>=0) {
+                        mediaPlayerService.play();
+                    }
+                    else{
+                        mediaPlayerService.nextSong();
+                    }
+                    Log.d("serwis", "is not playing serwis");
                 }
             }
         });
 
-        rewindLeft = (ImageView) findViewById(R.id.buttonRewindLeft);
-        rewindLeft.setOnClickListener(new View.OnClickListener()
-        {
+        nextSong = (ImageView) findViewById(R.id.buttonNext);
+        nextSong.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v)
-            {
-                // TODO: działanie przycisku
+            public void onClick(View v) {
+                mediaPlayerService.nextSong();
+                Log.d("button","nastepna piosenka");
             }
         });
 
-        rewindRight = (ImageView) findViewById(R.id.buttonRewindRight);
-        rewindRight.setOnClickListener(new View.OnClickListener()
-        {
+        previousSong = (ImageView) findViewById(R.id.buttonPrevious);
+        previousSong.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v)
-            {
-                // TODO: działanie przycisku
+            public void onClick(View v) {
+                mediaPlayerService.previousSong();
+                Log.d("button","poprzednia piosenka");
             }
         });
+    }
 
+    public static Song getSong(int index) throws OverflowIndexException, NullPointerException, NegativeIndexException {
+        if(songs.size()==0){
+            throw new NullPointerException();
+        }
+        if(index >= songs.size()){
+            throw new OverflowIndexException();
+        }
+        if(index < 0){
+            throw new NegativeIndexException();
+        }
+        return songs.get(index);
+    }
+    public static int getSongsSize(){
+        return songs.size();
+    }
+
+    protected void addSongsToList(){
         ArrayList<String> listItems = new ArrayList<String>();
 
 
         ArrayAdapter<String> adapter;
-        adapter = new ArrayAdapter<String>(this,
-                android.R.layout.simple_list_item_1,
-                listItems);
+        adapter = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,listItems);
         listView = (ListView) findViewById(R.id.listView);
+        adapter.clear();
         listView.setAdapter(adapter);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener()
         {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id)
             {
-                aonItemClick(parent, view, position, id);
+                String path = songs.get(position).getPath();
+                mediaPlayerService.setSongIndex(position);
+                mediaPlayerService.play(path);
             }
         });
         getSongList();
@@ -112,31 +128,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         }
     }
 
-
-    protected void aonItemClick(AdapterView<?> list, View view, int position, long id)
-    {
-        Log.d("position", position + "");
-        Log.d("id", id + "");
-        //serwis.play(songs.get(position).getPath());
-
-        try
-        {
-
-            mp.reset();
-            mp.setDataSource(songs.get(position).getPath());
-            mp.prepare();
-            mp.start();
-
-        }
-        catch (Exception e)
-        {
-            Log.v(getString(R.string.app_name), e.getMessage());
-        }
-        Log.d("po E", songs.get(position).getPath());
-    }
-
-
-    public void getSongList()
+    protected void getSongList()
     {
         ContentResolver musicResolver = getContentResolver();
         Uri musicUri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
@@ -145,24 +137,10 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
         if (musicCursor != null && musicCursor.moveToFirst())
         {
-            //get columns
             String[] columns = musicCursor.getColumnNames();
-            /*
-            for(String s:columns){
-                Log.d("kolumna",s);
-                try {
-                    int ind = musicCursor.getColumnIndex(s);
-                    String o = musicCursor.getString(ind);
-                    Log.d("debug "+ ind , "w kolumnie " + s + " jest wartosc " + (o == null ? "null" : o));
-                }
-                catch (Exception e){
 
-                }
-            }*/
             int idColumn = musicCursor.getColumnIndex
                     (android.provider.MediaStore.Audio.Media._ID);
-
-            //add songs to list
 
             do
             {
@@ -172,7 +150,6 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             }
             while (musicCursor.moveToNext());
         }
-        // sciezka do pliku do _data, index 1
     }
 
     @Override
@@ -180,7 +157,10 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     {
         super.onResume();
         System.out.println("Wykonano resume");
-        Intent bindIntent = new Intent(this, MyService.class);
+        addSongsToList();
+
+
+        Intent bindIntent = new Intent(this, MediaPlayerService.class);
         bindService(bindIntent, this, BIND_AUTO_CREATE);
     }
 
@@ -189,7 +169,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     {
         super.onPause();
         System.out.println("Wykonano onPause");
-        if (myService != null)
+        if (mediaPlayerService != null)
         {
             unbindService(this);
         }
@@ -198,12 +178,12 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     @Override
     public void onServiceConnected(ComponentName name, IBinder iBinder)
     {
-        myService = ((MyService.LocalBinder) iBinder).getService();
+        mediaPlayerService = ((MediaPlayerService.LocalBinder) iBinder).getService();
     }
 
     @Override
     public void onServiceDisconnected(ComponentName name)
     {
-        myService = null;
+        mediaPlayerService = null;
     }
 }
