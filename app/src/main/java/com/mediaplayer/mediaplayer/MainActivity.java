@@ -50,11 +50,13 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             @Override
             public void onClick(View v) {
                 if(mediaPlayerService.isPlaying()) {
+                    playPause.setImageResource(R.drawable.play);
                     mediaPlayerService.pause();
                     Log.d("serwis", "is playing serwis");
                 }
                 else {
                     if(mediaPlayerService.getSongIndex()>=0) {
+                        playPause.setImageResource(R.drawable.pause);
                         mediaPlayerService.play();
                     }
                     else{
