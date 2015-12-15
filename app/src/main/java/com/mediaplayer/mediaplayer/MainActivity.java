@@ -119,6 +119,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                 String path = songs.get(position).getPath();
                 mediaPlayerService.setSongIndex(position);
                 mediaPlayerService.play(path);
+                playPause.setImageResource(R.drawable.pause);
             }
         });
         getSongList();
